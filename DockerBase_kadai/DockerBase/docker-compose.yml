@@ -1,0 +1,33 @@
+services:
+  working:
+    build: ./working
+    volumes:
+      - ./storage:/storage
+    command: ["tail", "-f", "/dev/null"]
+
+  mysql:
+    build: ./mysql
+    volumes:
+      - ./sql:/root/sql
+      - db_data:/var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 'p@ssword'
+      MYSQL_DATABASE: 'social_game_placeholder' # ★追加：DB名を設定
+    # ★★★★ ここから追加 ★★★★
+    command: 
+      --default-authentication-plugin=mysql_native_password # ★追加：認証方式の互換性を確保
+    # ★★★★ ここまで追加 ★★★★
+
+  php:
+    build: ./php
+    volumes:
+      - ./htdocs:/var/www/html
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - mysql
+
+volumes:
+    db_data: {}
