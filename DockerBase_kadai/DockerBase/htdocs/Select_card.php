@@ -4,15 +4,19 @@ $current_user_id = $_SESSION['user_id'];
 
 try {
     $pdo_sub = getSubDb();
+    // 【重要】種類(master_id)ごとに枚数を数えて取得します
     $sql = "
-        SELECT ui.id AS instance_id, i.name, i.next_id
+        SELECT 
+            i.id AS master_id, i.name, i.next_id, COUNT(*) AS qty
         FROM sub_db.users_cards ui
         JOIN master_db.cards i ON ui.card_id = i.id
         WHERE ui.user_id = :user_id
+        GROUP BY i.id, i.name, i.next_id
+        ORDER BY i.id ASC
     ";
     $stmt = $pdo_sub->prepare($sql);
     $stmt->execute([':user_id' => $current_user_id]);
-    $user_cards = $stmt->fetchAll();
+    $card_options = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
     die("エラー: " . $e->getMessage());
 }
@@ -21,79 +25,82 @@ try {
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>カード選択</title>
+    <title>カード強化 | 注文画面</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background-color: #f4f4f4; padding: 20px; }
-        .form-box { background: white; padding: 20px; border-radius: 10px; display: inline-block; text-align: left; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 400px; }
-        select { width: 100%; padding: 10px; margin-bottom: 20px; font-size: 1em; }
-        button { width: 100%; padding: 15px; background: #4CAF50; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        .hidden { display: none; } /* 隠すためのスタイル */
+        body { font-family: sans-serif; text-align: center; background: #f0f2f5; padding: 20px; }
+        .order-sheet { background: white; padding: 30px; border-radius: 15px; display: inline-block; width: 400px; text-align: left; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        select { width: 100%; padding: 12px; margin: 10px 0 25px; border-radius: 8px; border: 1px solid #ddd; font-size: 1em; }
+        button { width: 100%; padding: 15px; background: #4CAF50; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1.1em; }
+        button:disabled { background: #ccc; }
     </style>
-
-    <script>
-    function updateMaterialList() {
-        // 1. ベースカードで選ばれたIDを取得
-        const baseSelect = document.getElementById('base_select');
-        const materialSelect = document.getElementById('material_select');
-        const selectedBaseId = baseSelect.value;
-
-        // 2. 素材カードの全選択肢（option）をループで確認
-        for (let i = 0; i < materialSelect.options.length; i++) {
-            let option = materialSelect.options[i];
-
-            // 3. 一旦すべての選択肢を表示させる（リセット）
-            option.disabled = false;
-            option.style.display = 'block';
-
-            // 4. ベースで選んだIDと同じIDの選択肢を「無効化して隠す」
-            if (option.value !== "" && option.value === selectedBaseId) {
-                option.disabled = true;
-                option.style.display = 'none'; // リストから消えたように見せる
-                
-                // もし素材側でも同じものが選ばれていたら、選択を解除する
-                if (materialSelect.value === selectedBaseId) {
-                    materialSelect.value = "";
-                }
-            }
-        }
-    }
-    </script>
 </head>
 <body>
-    <h1>🛠️ カード強化（ミックス）</h1>
+    <h1>🛠️ 合成の注文（Select）</h1>
 
-    <div class="form-box">
-        <?php if (count($user_cards) < 2): ?>
-            <p style="color:red;">カードが2枚以上必要です。</p>
-            <a href="My_card.php">戻る</a>
-        <?php else: ?>
-            <form action="Mix_card.php" method="GET">
-                
-                <h3>1. ベースカードを選択</h3>
-                <select name="base_id" id="base_select" required onchange="updateMaterialList()">
-                    <option value="">-- ベースを選ぶ --</option>
-                    <?php foreach ($user_cards as $c): ?>
-                        <?php if ($c['next_id'] !== null): ?>
-                            <option value="<?= $c['instance_id'] ?>">
-                                ID:<?= $c['instance_id'] ?> <?= htmlspecialchars($c['name']) ?>
-                            </option>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
-                </select>
-
-                <h3>2. 素材カードを選択</h3>
-                <select name="material_id" id="material_select" required>
-                    <option value="">-- 素材を選ぶ --</option>
-                    <?php foreach ($user_cards as $c): ?>
-                        <option value="<?= $c['instance_id'] ?>">
-                            ID:<?= $c['instance_id'] ?> <?= htmlspecialchars($c['name']) ?>
+    <div class="order-sheet">
+        <form action="Mix_card.php" method="POST">
+            
+            <h3>1. ベースカードを選択</h3>
+            <select name="base_master_id" id="base_select" required onchange="updateKitchenOrder()">
+                <option value="">-- 種類を選ぶ --</option>
+                <?php foreach ($card_options as $c): ?>
+                    <?php if ($c['next_id']): // 進化先があるものだけ ?>
+                        <option value="<?= $c['master_id'] ?>">
+                            <?= htmlspecialchars($c['name']) ?> (所持:<?= $c['qty'] ?>枚)
                         </option>
-                    <?php endforeach; ?>
-                </select>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </select>
 
-                <button type="submit">強化を実行する！</button>
-            </form>
-        <?php endif; ?>
+            <h3>2. 素材カードを選択</h3>
+            <select name="material_master_id" id="material_select" required disabled>
+                <option value="">-- 先にベースを選んでください --</option>
+            </select>
+
+            <button type="submit" id="order_btn" disabled>この内容で注文する！</button>
+        </form>
     </div>
+
+    <script>
+        // PHPから全在庫データをJSに渡しておく
+        const inventory = <?= json_encode($card_options) ?>;
+
+        function updateKitchenOrder() {
+            const baseSelect = document.getElementById('base_select');
+            const matSelect = document.getElementById('material_select');
+            const btn = document.getElementById('order_btn');
+            const selectedId = baseSelect.value;
+
+            // 素材リストを一旦リセット
+            matSelect.innerHTML = '<option value="">-- 素材を選ぶ --</option>';
+
+            if (!selectedId) {
+                matSelect.disabled = true;
+                btn.disabled = true;
+                return;
+            }
+
+            // 在庫をループして、素材として選べるものを表示
+            inventory.forEach(card => {
+                let availableQty = parseInt(card.qty);
+                
+                // 【ここがポイント】ベースと同じ種類なら、1枚差し引く
+                if (card.master_id == selectedId) {
+                    availableQty -= 1;
+                }
+
+                // 1枚でも余っていれば、素材としてリストに載せる
+                if (availableQty > 0) {
+                    const opt = document.createElement('option');
+                    opt.value = card.master_id;
+                    opt.textContent = `${card.name} (残り${availableQty}枚)`;
+                    matSelect.appendChild(opt);
+                }
+            });
+
+            matSelect.disabled = false;
+            btn.disabled = false;
+        }
+    </script>
 </body>
 </html>

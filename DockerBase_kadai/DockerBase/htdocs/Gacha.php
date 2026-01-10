@@ -53,10 +53,21 @@ try {
 </head>
 <body>
     <div class="result-box">
-        <h1>✨ SUMMON RESULT ✨</h1>
-        <p>…… 魔法陣から現れたのは ……</p>
-        <h2 style="font-size: 3em; color: gold;"><?= htmlspecialchars($picked_card['name']) ?></h2>
-        <a href="My_card.php" class="btn">一覧へ戻る</a>
+    <h1>✨ RESULT ✨</h1>
+    <p>…… 魔法陣から現れたのは ……</p>
+    <h2 style="font-size: 3em; color: gold;"><?= htmlspecialchars($picked_card['name']) ?></h2>
+
+    <div style="margin-top: 30px;">
+        <a href="Gacha.php" style="display: inline-block; padding: 15px 30px; background: linear-gradient(135deg, #ff9800, #f44336); color: white; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 1.1em; margin-right: 10px; box-shadow: 0 4px #e68a00;">
+            🎰 もう一度引く
+        </a>
+
+        <br><br>
+
+        <a href="My_card.php" style="display: inline-block; padding: 10px 20px; background: #555; color: white; text-decoration: none; border-radius: 5px; font-size: 0.9em;">
+            一覧へ戻る
+        </a>
     </div>
+</div>
 </body>
 </html>
