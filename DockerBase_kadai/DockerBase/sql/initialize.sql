@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS cards(
 );
 
 INSERT INTO cards(id, name, next_id, rate) values 
-(1, 'normalcard', 2, 100), (2, 'rarecard', 3, 30),(3, 'hypercard', 4, 5), (4, 'card', 5, 1);
+(1, 'normalcard', 2, 100), (2, 'rarecard', 3, 30),(3, 'hypercard', 4, 5), (4, 'card', NULL, 1);
 
 select * from cards;
 
