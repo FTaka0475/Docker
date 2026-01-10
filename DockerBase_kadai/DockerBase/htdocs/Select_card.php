@@ -4,102 +4,112 @@ $current_user_id = $_SESSION['user_id'];
 
 try {
     $pdo_sub = getSubDb();
-    // 【重要】種類(master_id)ごとに枚数を数えて取得します
-    $sql = "
-        SELECT 
-            i.id AS master_id, i.name, i.next_id, COUNT(*) AS qty
-        FROM sub_db.users_cards ui
-        JOIN master_db.cards i ON ui.card_id = i.id
-        WHERE ui.user_id = :user_id
-        GROUP BY i.id, i.name, i.next_id
-        ORDER BY i.id ASC
-    ";
+    // rarity を rare に変更
+    $sql = "SELECT i.id AS master_id, i.name, i.next_id, i.rare, COUNT(*) AS qty
+            FROM sub_db.users_cards ui
+            JOIN master_db.cards i ON ui.card_id = i.id
+            WHERE ui.user_id = :user_id
+            GROUP BY i.id, i.name, i.next_id, i.rare
+            ORDER BY i.rare ASC, i.id ASC";
     $stmt = $pdo_sub->prepare($sql);
     $stmt->execute([':user_id' => $current_user_id]);
     $card_options = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
-    die("エラー: " . $e->getMessage());
-}
+} catch (Exception $e) { die("エラー: " . $e->getMessage()); }
 ?>
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>カード強化 | 注文画面</title>
+    <title>強化センター</title>
     <style>
         body { font-family: sans-serif; text-align: center; background: #f0f2f5; padding: 20px; }
-        .order-sheet { background: white; padding: 30px; border-radius: 15px; display: inline-block; width: 400px; text-align: left; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        select { width: 100%; padding: 12px; margin: 10px 0 25px; border-radius: 8px; border: 1px solid #ddd; font-size: 1em; }
+        .box { background: white; padding: 25px; border-radius: 15px; display: inline-block; width: 450px; text-align: left; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .material-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        .rate-display { font-size: 1.8em; color: #e67e22; font-weight: bold; text-align: center; margin: 20px 0; }
+        input[type="number"] { width: 60px; padding: 5px; border-radius: 5px; border: 1px solid #ddd; }
         button { width: 100%; padding: 15px; background: #4CAF50; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1.1em; }
-        button:disabled { background: #ccc; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
     </style>
 </head>
 <body>
-    <h1>🛠️ 合成の注文（Select）</h1>
-
-    <div class="order-sheet">
+    <h1>🛠️ カード強化</h1>
+    <div class="box">
         <form action="Mix_card.php" method="POST">
-            
             <h3>1. ベースカードを選択</h3>
-            <select name="base_master_id" id="base_select" required onchange="updateKitchenOrder()">
-                <option value="">-- 種類を選ぶ --</option>
+            <select name="base_master_id" id="base_select" required onchange="initMaterialList()">
+                <option value="">-- ベースを選ぶ --</option>
                 <?php foreach ($card_options as $c): ?>
-                    <?php if ($c['next_id']): // 進化先があるものだけ ?>
-                        <option value="<?= $c['master_id'] ?>">
-                            <?= htmlspecialchars($c['name']) ?> (所持:<?= $c['qty'] ?>枚)
+                    <?php if ($c['next_id']): ?>
+                        <option value="<?= $c['master_id'] ?>" data-rare="<?= $c['rare'] ?>">
+                            [★<?= $c['rare'] ?>] <?= htmlspecialchars($c['name']) ?> (所持:<?= $c['qty'] ?>)
                         </option>
                     <?php endif; ?>
                 <?php endforeach; ?>
             </select>
 
             <h3>2. 素材カードを選択</h3>
-            <select name="material_master_id" id="material_select" required disabled>
-                <option value="">-- 先にベースを選んでください --</option>
-            </select>
+            <div id="material_list">
+                <p style="color:gray;">先にベースを選んでください</p>
+            </div>
 
-            <button type="submit" id="order_btn" disabled>この内容で注文する！</button>
+            <div class="rate-display">成功確率: <span id="total_rate">0</span> %</div>
+            <button type="submit" id="submit_btn" disabled>強化を実行する</button>
         </form>
     </div>
 
     <script>
-        // PHPから全在庫データをJSに渡しておく
-        const inventory = <?= json_encode($card_options) ?>;
+        const myCards = <?= json_encode($card_options) ?>;
+        const rateTable = {
+            1: { 1: 100 },
+            2: { 2: 100, 1: 50 },
+            3: { 3: 100, 2: 25, 1: 5 },
+            4: { 4: 100, 3: 10, 2: 2, 1: 1 }
+        };
 
-        function updateKitchenOrder() {
+        function initMaterialList() {
             const baseSelect = document.getElementById('base_select');
-            const matSelect = document.getElementById('material_select');
-            const btn = document.getElementById('order_btn');
-            const selectedId = baseSelect.value;
+            const listDiv = document.getElementById('material_list');
+            const baseId = baseSelect.value;
+            // dataset.rarity を dataset.rare に変更
+            const baseRare = parseInt(baseSelect.selectedOptions[0]?.dataset.rare || 0);
 
-            // 素材リストを一旦リセット
-            matSelect.innerHTML = '<option value="">-- 素材を選ぶ --</option>';
+            listDiv.innerHTML = '';
+            if (!baseId) { updateTotal(); return; }
 
-            if (!selectedId) {
-                matSelect.disabled = true;
-                btn.disabled = true;
-                return;
-            }
+            myCards.forEach(card => {
+                let maxQty = parseInt(card.qty);
+                if (card.master_id == baseId) maxQty--;
 
-            // 在庫をループして、素材として選べるものを表示
-            inventory.forEach(card => {
-                let availableQty = parseInt(card.qty);
-                
-                // 【ここがポイント】ベースと同じ種類なら、1枚差し引く
-                if (card.master_id == selectedId) {
-                    availableQty -= 1;
-                }
-
-                // 1枚でも余っていれば、素材としてリストに載せる
-                if (availableQty > 0) {
-                    const opt = document.createElement('option');
-                    opt.value = card.master_id;
-                    opt.textContent = `${card.name} (残り${availableQty}枚)`;
-                    matSelect.appendChild(opt);
+                if (maxQty > 0) {
+                    // card.rarity を card.rare に変更
+                    const ratePer = rateTable[baseRare]?.[card.rare] ?? (card.rare >= baseRare ? 100 : 0);
+                    const row = document.createElement('div');
+                    row.className = 'material-row';
+                    row.innerHTML = `
+                        <span>${card.name} (★${card.rare}) <small>+${ratePer}%/枚</small></span>
+                        <input type="number" name="materials[${card.master_id}]" value="0" min="0" max="${maxQty}" data-rate="${ratePer}" onchange="updateTotal()">
+                    `;
+                    listDiv.appendChild(row);
                 }
             });
+            updateTotal();
+        }
 
-            matSelect.disabled = false;
-            btn.disabled = false;
+        function updateTotal() {
+            let total = 0;
+            const inputs = document.querySelectorAll('#material_list input');
+            inputs.forEach(input => {
+                total += parseInt(input.value) * parseInt(input.dataset.rate);
+            });
+
+            if (total >= 100) {
+                total = 100;
+                inputs.forEach(input => { if (parseInt(input.value) === 0) input.disabled = true; });
+            } else {
+                inputs.forEach(input => input.disabled = false);
+            }
+            document.getElementById('total_rate').innerText = total;
+            document.getElementById('submit_btn').disabled = (total <= 0);
         }
     </script>
 </body>

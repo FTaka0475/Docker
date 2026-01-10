@@ -1,42 +1,68 @@
 <?php
-// このファイルは「道具箱」なので、呼び出されて動く前提です
-function executeMixing($uid, $baseMasterId, $matMasterId) {
+function executeMixing($uid, $baseMid, $materialList) {
+    // 【案A】の設定
+    $rateTable = [
+        1 => [1 => 100],
+        2 => [2 => 100, 1 => 50],
+        3 => [3 => 100, 2 => 25, 1 => 5],
+        4 => [4 => 100, 3 => 10, 2 => 2, 1 => 1],
+    ];
+
     try {
         $pdo_sub = getSubDb();
         $pdo_master = getMasterDb();
         $pdo_sub->beginTransaction();
 
-        // 1. ベース個体の特定
+        // ベース個体の特定
         $stmt = $pdo_sub->prepare("SELECT id FROM users_cards WHERE user_id = :u AND card_id = :m LIMIT 1");
-        $stmt->execute([':u' => $uid, ':m' => $baseMasterId]);
+        $stmt->execute([':u' => $uid, ':m' => $baseMid]);
         $base = $stmt->fetch();
-        if (!$base) throw new Exception("ベースカードがありません");
-
-        // 2. 素材個体の特定
-        $stmt = $pdo_sub->prepare("SELECT id FROM users_cards WHERE user_id = :u AND card_id = :m AND id != :b LIMIT 1");
-        $stmt->execute([':u' => $uid, ':m' => $matMasterId, ':b' => $base['id']]);
-        $mat = $stmt->fetch();
-        if (!$mat) throw new Exception("素材カードが足りません");
-
-        // 3. 進化先の特定
-        $stmt = $pdo_master->prepare("SELECT next_id FROM cards WHERE id = :m");
-        $stmt->execute([':m' => $baseMasterId]);
-        $nextId = $stmt->fetchColumn();
-        if (!$nextId) throw new Exception("進化先がありません");
-
-        // 4. DB更新
-        $pdo_sub->prepare("UPDATE users_cards SET card_id = :n WHERE id = :i")->execute([':n' => $nextId, ':i' => $base['id']]);
-        $pdo_sub->prepare("DELETE FROM users_cards WHERE id = :i")->execute([':i' => $mat['id']]);
-
-        $pdo_sub->commit();
         
-        // 進化後の名前を返り値として返す
-        $stmt = $pdo_master->prepare("SELECT name FROM cards WHERE id = :i");
-        $stmt->execute([':i' => $nextId]);
-        return ['success' => true, 'new_name' => $stmt->fetchColumn()];
+        // rarity を rare に変更
+        $bInfo = $pdo_master->query("SELECT rare, next_id FROM cards WHERE id = $baseMid")->fetch();
 
+        if (!$base || !$bInfo) throw new Exception("カードデータが見つかりません");
+
+        $totalRate = 0;
+        $materialsToDelete = [];
+
+        foreach ($materialList as $mMid => $qty) {
+            $qty = (int)$qty;
+            if ($qty <= 0) continue;
+
+            // rarity を rare に変更
+            $mRare = $pdo_master->query("SELECT rare FROM cards WHERE id = $mMid")->fetchColumn();
+            
+            // 確率計算（ベースのrareと素材のrareで比較）
+            $ratePer = $rateTable[$bInfo['rare']][$mRare] ?? ($mRare >= $bInfo['rare'] ? 100 : 0);
+            $totalRate += ($ratePer * $qty);
+
+            // 削除対象の個別IDを取得
+            $findStmt = $pdo_sub->prepare("SELECT id FROM users_cards WHERE user_id = :u AND card_id = :m AND id != :bid LIMIT $qty");
+            $findStmt->execute([':u' => $uid, ':m' => $mMid, ':bid' => $base['id']]);
+            $materialsToDelete = array_merge($materialsToDelete, $findStmt->fetchAll(PDO::FETCH_COLUMN));
+        }
+
+        $finalRate = min($totalRate, 100);
+        $isSuccess = (rand(1, 100) <= $finalRate);
+
+        // 素材は成否に関わらず必ず消す
+        foreach ($materialsToDelete as $delId) {
+            $pdo_sub->prepare("DELETE FROM users_cards WHERE id = :i")->execute([':i' => $delId]);
+        }
+
+        if ($isSuccess) {
+            $pdo_sub->prepare("UPDATE users_cards SET card_id = :n WHERE id = :i")
+                    ->execute([':n' => $bInfo['next_id'], ':i' => $base['id']]);
+            $pdo_sub->commit();
+            $newName = $pdo_master->query("SELECT name FROM cards WHERE id = ".$bInfo['next_id'])->fetchColumn();
+            return ['status' => 'success', 'new_name' => $newName, 'rate' => $finalRate];
+        } else {
+            $pdo_sub->commit(); 
+            return ['status' => 'fail', 'rate' => $finalRate];
+        }
     } catch (Exception $e) {
         if (isset($pdo_sub)) $pdo_sub->rollBack();
-        return ['success' => false, 'error' => $e->getMessage()];
+        return ['status' => 'error', 'message' => $e->getMessage()];
     }
 }
