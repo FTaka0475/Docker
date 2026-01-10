@@ -19,10 +19,12 @@ DROP TABLE IF EXISTS cards;
 CREATE TABLE IF NOT EXISTS cards(
     id INT PRIMARY KEY,
     name VARCHAR(255),
-    next_id INT 
+    next_id INT ,
+    rate INT DEFAULT 10
 );
 
-INSERT INTO cards(id, name, next_id) values (1, 'normalcard',2), (2, 'rarecard',3);
+INSERT INTO cards(id, name, next_id, rate) values 
+(1, 'normalcard', 2, 100), (2, 'rarecard', 3, 30),(3, 'hypercard', 4, 5), (4, 'card', 5, 1);
 
 select * from cards;
 

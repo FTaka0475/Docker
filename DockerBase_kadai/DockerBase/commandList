@@ -182,18 +182,12 @@ DROP TABLE IF EXISTS cards;
 CREATE TABLE IF NOT EXISTS cards(
     id INT PRIMARY KEY,
     name VARCHAR(255),
-    next_id INT 
+    next_id INT ,
+    rate INT DEFAULT 10
 );
 
--- -- next_card_id カラム (INT型、NULL許可) を cards テーブルに追加
--- ALTER TABLE cards
--- ADD COLUMN next_card_id INT NULL;
-
--- UPDATE cards
--- SET next_card_id = NULL
--- WHERE id = 2;
-
-INSERT INTO cards(id, name, next_id) values (1, 'normalcard',2), (2, 'rarecard',3);
+INSERT INTO cards(id, name, next_id, rate) values 
+(1, 'normalcard', 2, 100), (2, 'rarecard', 3, 30),(3, 'hypercard', 4, 5), (4, 'card', 5, 1);
 
 use sub_db;
 
