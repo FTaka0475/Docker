@@ -24,8 +24,23 @@ CREATE TABLE IF NOT EXISTS cards(
     rare INT DEFAULT 1
 );
 
+
 INSERT INTO cards(id, name, next_id, rate, rare) values 
 (1, 'normalcard', 2, 100, 1), (2, 'rarecard', 3, 30, 2),(3, 'hypercard', 4, 5, 3), (4, 'card', NULL, 1, 4);
+
+DROP TABLE IF EXISTS images;
+CREATE TABLE IF NOT EXISTS images(
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    card_id INT NOT NULL,
+    image_path VARCHAR(255) NOT NULL,
+    FOREIGN KEY (card_id) REFERENCES cards(id)
+);
+
+INSERT INTO images (card_id, image_path) VALUES
+(1, 'normal.png'),
+(2, 'rare.png'),
+(3, 'Hyper.png'),
+(4, 'card.png');
 
 select * from cards;
 

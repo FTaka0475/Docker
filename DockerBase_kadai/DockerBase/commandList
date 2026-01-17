@@ -189,6 +189,22 @@ CREATE TABLE IF NOT EXISTS cards(
 INSERT INTO cards(id, name, next_id, rate) values 
 (1, 'normalcard', 2, 100), (2, 'rarecard', 3, 30),(3, 'hypercard', 4, 5), (4, 'card', 5, 1);
 
+DROP TABLE IF EXISTS images;
+CREATE TABLE IF NOT EXISTS images(
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    card_id INT NOT NULL,
+    image_path VARCHAR(255) NOT NULL,
+    FOREIGN KEY (card_id) REFERENCES cards(id)
+);
+
+INSERT INTO images (card_id, image_path) VALUES
+(1, 'normal.png'),
+(2, 'rare.png'),
+(3, 'Hyper.png'),
+(4, 'card.png');
+
+
+
 use sub_db;
 
 DROP TABLE IF EXISTS users_name;
