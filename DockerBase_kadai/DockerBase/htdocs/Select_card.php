@@ -37,10 +37,10 @@ try {
     </style>
 </head>
 <body>
-    <h1>🐾 ねこねこ強化センター</h1>
+    <h1>🐾 カード強化センター</h1>
     <div class="box">
         <form action="Mix_card.php" method="POST">
-            <h3>1. ベースねこを選択</h3>
+            <h3>1. ベースを選択</h3>
             <select name="base_master_id" id="base_select" required onchange="initMaterialList()">
                 <option value="">-- ベースを選ぶ --</option>
                 <?php foreach ($card_options as $c): ?>
@@ -52,7 +52,7 @@ try {
                 <?php endforeach; ?>
             </select>
 
-            <h3>2. 素材ねこを選択</h3>
+            <h3>2. 素材を選択</h3>
             <div id="material_list">
                 <p style="color:gray; text-align:center;">先にベースを選んでね</p>
             </div>

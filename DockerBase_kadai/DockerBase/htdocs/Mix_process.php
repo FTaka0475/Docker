@@ -42,7 +42,6 @@ function executeMixing($uid, $baseMid, $materialList) {
             $pdo_sub->prepare("UPDATE users_cards SET card_id = :n WHERE id = :i")->execute([':n' => $bInfo['next_id'], ':i' => $base['id']]);
             $pdo_sub->commit();
             
-            // 進化後のカード名と画像をJOINで取得
             $stmtNext = $pdo_master->prepare("
                 SELECT c.name, img.image_path 
                 FROM cards c 

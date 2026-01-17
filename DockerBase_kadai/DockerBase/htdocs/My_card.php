@@ -30,7 +30,6 @@ try {
     $stmt->execute([':user_id' => $current_user_id]);
     $my_cards_summary = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 合計枚数（カードの総数）を取得
     $total_count = 0;
     foreach ($my_cards_summary as $card) {
         $total_count += $card['quantity'];

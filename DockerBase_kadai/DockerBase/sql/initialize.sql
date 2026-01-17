@@ -13,8 +13,6 @@ CREATE DATABASE IF NOT EXISTS sub_db;
 
 USE master_db;
 
-show tables;
-
 DROP TABLE IF EXISTS cards;
 CREATE TABLE IF NOT EXISTS cards(
     id INT PRIMARY KEY,
@@ -42,7 +40,6 @@ INSERT INTO images (card_id, image_path) VALUES
 (3, 'Hyper.png'),
 (4, 'card.png');
 
-select * from cards;
 
 USE sub_db;
 
@@ -52,8 +49,6 @@ CREATE TABLE IF NOT EXISTS users_name(
     name VARCHAR(255)
 );
 
-select * from users_name;
-select * from users_cards;
 
 DROP TABLE IF EXISTS users_cards;
 CREATE TABLE IF NOT EXISTS users_cards(
