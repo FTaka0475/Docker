@@ -5,6 +5,12 @@ require_once 'common.php';
 $uid = $_SESSION['user_id'] ?? null;
 $uName = $_SESSION['user_name'] ?? '';
 
+if(!$uid)
+{
+    header("Location: login.php");
+    exit;
+}
+
 $my_cards = [];
 if ($uid) {
     try {
@@ -55,9 +61,9 @@ if ($uid) {
     <div class="header">
         <h1>🐾 <?= htmlspecialchars($uName) ?> さんのねこ帳</h1>
         <nav>
-            <a href="Gacha.php">💎ガチャ</a> | 
+            <a href="Gacha.php">🐈ガチャ</a> | 
             <a href="Select_card.php">🛠️強化</a> | 
-            <a href="Create_user.php">👤交代</a>
+            <a href="login.php">👤交代</a>
         </nav>
     </div>
 

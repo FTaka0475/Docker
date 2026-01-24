@@ -49,31 +49,12 @@ CREATE TABLE IF NOT EXISTS users_name(
     name VARCHAR(255)
 );
 
-
 DROP TABLE IF EXISTS users_cards;
-CREATE TABLE IF NOT EXISTS users_cards(
-    id INT PRIMARY KEY,
-    user_id INT ,
-    card_id INT
-);
-
-INSERT INTO users_name(id, name) values (1, 'tanaka') , (2, 'yama');
-
-INSERT INTO users_cards(id,user_id, card_id) values (1,1,1), (2,2,1), (3,1,1);
-
--- 修正
-
-DROP TABLE IF EXISTS users_cards;
-
 CREATE TABLE IF NOT EXISTS users_cards(
     id INT PRIMARY KEY AUTO_INCREMENT, 
     user_id INT,
     card_id INT
 );
-
-INSERT INTO users_cards(id,user_id, card_id) values (1,1,1), (2,2,1), (3,1,1);
-
---
 
 DROP TABLE IF EXISTS initial_cards;
 CREATE TABLE IF NOT EXISTS initial_cards(
