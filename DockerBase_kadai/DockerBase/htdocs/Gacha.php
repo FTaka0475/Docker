@@ -4,7 +4,7 @@ $current_user_id = $_SESSION['user_id'] ?? null;
 
 // もしログインしていなければ登録画面へ
 if (!$current_user_id) {
-    header("Location: Create_user.php");
+    header("Location:login.php");
     exit;
 }
 

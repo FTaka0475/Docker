@@ -1,4 +1,5 @@
 <?php
+//メイン画面
 require_once 'common.php';
 
 // 今誰がログインしているか確認

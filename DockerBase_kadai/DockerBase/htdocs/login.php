@@ -1,4 +1,5 @@
 <?php
+//ログイン
 require_once 'common.php';
 
 // ユーザーが選択された時の処理

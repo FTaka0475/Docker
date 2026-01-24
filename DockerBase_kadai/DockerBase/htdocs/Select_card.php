@@ -5,7 +5,7 @@ $current_user_id = $_SESSION['user_id'];
 
 try {
     $pdo_sub = getSubDb();
-    // imagesテーブルをJOINして image_path を取得
+
     $sql = "SELECT i.id AS master_id, i.name, i.next_id, i.rare, img.image_path, COUNT(*) AS qty
             FROM sub_db.users_cards ui
             JOIN master_db.cards i ON ui.card_id = i.id
