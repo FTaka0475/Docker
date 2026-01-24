@@ -1,22 +1,16 @@
 <?php
-// common.php
 
-// エラーを画面に表示する(開発用)
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-// セッションを開始
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// ★★★ user_idの設定（ログインがないため固定）★★★
 if (!isset($_SESSION['user_id'])) {
-    $_SESSION['user_id'] = 1; // ユーザーIDを1に固定
+    $_SESSION['user_id'] = 1; 
 }
-// ===============================================
 
-// データベース接続設定を読み込む
 require_once 'db_config.php';
 
 /**

@@ -1,4 +1,5 @@
 <?php
+// 初期化 
 require_once 'common.php';
 $current_user_id = $_SESSION['user_id'];
 

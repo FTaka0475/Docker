@@ -45,7 +45,7 @@ USE sub_db;
 
 DROP TABLE IF EXISTS users_name;
 CREATE TABLE IF NOT EXISTS users_name(
-    id INT PRIMARY KEY,
+    id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255)
 );
 
@@ -64,9 +64,10 @@ INSERT INTO users_cards(id,user_id, card_id) values (1,1,1), (2,2,1), (3,1,1);
 -- 修正
 
 DROP TABLE IF EXISTS users_cards;
+
 CREATE TABLE IF NOT EXISTS users_cards(
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT ,
+    id INT PRIMARY KEY AUTO_INCREMENT, 
+    user_id INT,
     card_id INT
 );
 

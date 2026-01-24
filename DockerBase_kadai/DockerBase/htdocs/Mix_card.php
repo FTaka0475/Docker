@@ -1,4 +1,5 @@
 <?php
+// 合成結果画面 
 require_once 'common.php';
 require_once 'Mix_process.php';
 $uid = $_SESSION['user_id'];

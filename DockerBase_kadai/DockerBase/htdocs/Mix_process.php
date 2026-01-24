@@ -1,4 +1,5 @@
 <?php
+// 合成処理
 function executeMixing($uid, $baseMid, $materialList) {
     $rateTable = [
         1 => [1 => 100], 2 => [2 => 100, 1 => 50],

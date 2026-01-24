@@ -1,25 +1,27 @@
 <?php
 require_once 'common.php';
-$current_user_id = $_SESSION['user_id'];
+$current_user_id = $_SESSION['user_id'] ?? null;
+
+// もしログインしていなければ登録画面へ
+if (!$current_user_id) {
+    header("Location: Create_user.php");
+    exit;
+}
 
 try {
     $pdo_master = getMasterDb();
     $pdo_sub = getSubDb();
 
-    // 1. 全カードのデータ（ID, 名前, rate）を取得
     $stmt = $pdo_master->query("SELECT id, name, rate FROM cards");
     $all_cards = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 2. 出現レートの合計を計算
     $total_rate = 0;
     foreach ($all_cards as $card) {
         $total_rate += $card['rate'];
     }
 
-    // 3. 1 から 合計値(136) の間でランダムな数字を引く
     $random_number = mt_rand(1, $total_rate);
 
-    // 4. 当たったカードを特定する
     $current_sum = 0;
     $picked_card = null;
     foreach ($all_cards as $card) {
@@ -30,7 +32,6 @@ try {
         }
     }
 
-    // 5. 当たったカードをユーザーのDBに保存
     $sql_ins = "INSERT INTO sub_db.users_cards (user_id, card_id) VALUES (:uid, :cid)";
     $stmt_ins = $pdo_sub->prepare($sql_ins);
     $stmt_ins->execute([':uid' => $current_user_id, ':cid' => $picked_card['id']]);

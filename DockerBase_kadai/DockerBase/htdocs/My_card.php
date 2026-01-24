@@ -1,42 +1,28 @@
 <?php
-require_once 'common.php'; 
-$current_user_id = $_SESSION['user_id']; 
+require_once 'common.php';
 
-try {
-    $pdo_sub = getSubDb();
-    
-    // 【SQLの修正ポイント】
-    // 1. i.id を GROUP BY に含めることでエラーを回避します。
-    // 2. COUNT(*) で枚数を数えます。
-    // 3. i.id で並び替えることで、マスターデータの登録順に綺麗に並びます。
-    $sql = "
-        SELECT 
-            i.id AS card_id,
-            i.name AS card_name,
-            COUNT(*) AS quantity
-        FROM 
-            sub_db.users_cards ui
-        JOIN 
-            master_db.cards i ON ui.card_id = i.id
-        WHERE 
-            ui.user_id = :user_id
-        GROUP BY 
-            i.id, i.name
-        ORDER BY 
-            i.id ASC
-    ";
-    
-    $stmt = $pdo_sub->prepare($sql);
-    $stmt->execute([':user_id' => $current_user_id]);
-    $my_cards_summary = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// 今誰がログインしているか確認
+$uid = $_SESSION['user_id'] ?? null;
+$uName = $_SESSION['user_name'] ?? '';
 
-    $total_count = 0;
-    foreach ($my_cards_summary as $card) {
-        $total_count += $card['quantity'];
+$my_cards = [];
+if ($uid) {
+    try {
+        $pdo_sub = getSubDb();
+
+        $sql = "SELECT c.name, c.rare, img.image_path, COUNT(*) as qty 
+                FROM users_cards uc
+                JOIN master_db.cards c ON uc.card_id = c.id
+                JOIN master_db.images img ON c.id = img.card_id
+                WHERE uc.user_id = :uid
+                GROUP BY c.id, c.name, c.rare, img.image_path";
+                
+        $stmt = $pdo_sub->prepare($sql);
+        $stmt->execute([':uid' => $uid]);
+        $my_cards = $stmt->fetchAll();
+    } catch (Exception $e) { 
+        echo "<p style='color:red;'>SQLエラー: " . $e->getMessage() . "</p>";
     }
-
-} catch (Exception $e) {
-    die("エラーが発生しました: " . $e->getMessage());
 }
 ?>
 
@@ -44,91 +30,52 @@ try {
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>マイカード | カードゲーム開発</title>
+    <title>マイねこ帳</title>
     <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; text-align: center; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
-        h1 { color: #2c3e50; margin-bottom: 10px; }
-        
-        .btn-gacha {
-            display: inline-block;
-            margin-bottom: 30px;
-            padding: 15px 40px;
-            background: linear-gradient(135deg, #ff9800, #f44336);
-            color: white;
-            text-decoration: none;
-            border-radius: 50px;
-            font-weight: bold;
-            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);
-        }
-
-        .card-container {
-            max-width: 500px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-        }
-        .card-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #f1f1f1;
-            padding: 15px 10px;
-        }
-        .card-item:last-child { border-bottom: none; }
-        .card-name { font-weight: bold; color: #34495e; font-size: 1.1em; }
-        
-        /* 枚数表示のバッジ */
-        .card-quantity { 
-            background-color: #3498db; 
-            color: white; 
-            padding: 4px 15px; 
-            border-radius: 20px; 
-            font-size: 0.9em;
-            font-weight: bold;
-        }
-
-        .mix-section { margin-top: 30px; }
-        .btn-mix {
-            display: inline-block;
-            padding: 12px 30px;
-            background-color: #4CAF50;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: bold;
-        }
+        body { font-family: sans-serif; background: #fffcf0; text-align: center; color: #5d4037; margin: 0; }
+        .header { background: #fff; padding: 20px; border-bottom: 5px solid #ffcb81; }
+        .card-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 20px; }
+        .card { background: white; border: 2px solid #ffcb81; border-radius: 15px; padding: 10px; width: 140px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .card img { width: 100px; height: 100px; object-fit: contain; }
+        .btn { display: inline-block; padding: 12px 24px; background: #ff9f43; color: white; text-decoration: none; border-radius: 10px; margin-top: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h1>🗃️ マイページ</h1>
-    <p>プレイヤー: <strong>田中さん</strong></p>
-
-    <a href="Gacha.php" class="btn-gacha">🎰 ガチャを引く</a>
-
-    <div class="card-container">
-        <h3>📦 あなたの所持カード (合計 <?= $total_count ?> 枚)</h3>
-        
-        <?php if (empty($my_cards_summary)): ?>
-            <p style="padding: 20px; color: #999;">まだカードを持っていません。</p>
-        <?php else: ?>
-            <?php foreach ($my_cards_summary as $card): ?>
-                <div class="card-item">
-                    <span class="card-name">✨ <?= htmlspecialchars($card['card_name']) ?></span>
-                    <span class="card-quantity">x <?= $card['quantity'] ?></span>
-                </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
+<?php if (!$uid): ?>
+    <div style="margin-top: 100px; padding: 20px;">
+        <h1>🐾 飼い主さんが見つかりません</h1>
+        <p>ねこちゃんを見るには、登録が必要です。</p>
+        <a href="Create_user.php" class="btn">新しい飼い主を登録する</a>
+        <br>
+        <a href="select_user.php" style="display:inline-block; margin-top:15px; color:#888;">登録済みの人で遊ぶ</a>
     </div>
 
-    <div class="mix-section">
-        <?php if ($total_count >= 2): ?>
-            <a href="Select_card.php" class="btn-mix">🛠️ カードを強化する</a>
+<?php else: ?>
+    <div class="header">
+        <h1>🐾 <?= htmlspecialchars($uName) ?> さんのねこ帳</h1>
+        <nav>
+            <a href="Gacha.php">💎ガチャ</a> | 
+            <a href="Select_card.php">🛠️強化</a> | 
+            <a href="Create_user.php">👤交代</a>
+        </nav>
+    </div>
+
+    <div class="card-grid">
+        <?php foreach ($my_cards as $card): ?>
+            <div class="card">
+                <img src="img/<?= htmlspecialchars($card['image_path'] ?? 'no_image.png') ?>">
+                <div><strong><?= htmlspecialchars($card['name']) ?></strong></div>
+                <div style="color: #f1c40f;">★<?= $card['rare'] ?></div>
+                <div style="font-size: 0.8em; background:#f0f0f0; border-radius: 5px; margin-top: 5px;">所持: <?= $card['qty'] ?>枚</div>
+            </div>
+        <?php endforeach; ?>
+
+        <?php if (empty($my_cards)): ?>
+            <p>まだねこちゃんを持っていません。<br>ガチャを引きに行こう！</p>
         <?php endif; ?>
     </div>
+<?php endif; ?>
 
 </body>
 </html>
