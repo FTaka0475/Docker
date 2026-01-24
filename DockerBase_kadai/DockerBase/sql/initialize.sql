@@ -56,14 +56,6 @@ CREATE TABLE IF NOT EXISTS users_cards(
     card_id INT
 );
 
-DROP TABLE IF EXISTS initial_cards;
-CREATE TABLE IF NOT EXISTS initial_cards(
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    card_id INT
-);
-
-INSERT INTO initial_cards (card_id) VALUES (1), (1), (1);
-
 /*-- 自分で考えてみたクエリこうぞう
 SELECT id as "CardID" from cards;
 

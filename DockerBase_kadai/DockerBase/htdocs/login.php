@@ -57,13 +57,13 @@ try {
         <?php endforeach; ?>
         
         <?php if (empty($users)): ?>
-            <p>まだ登録されている飼い主がいません。</p>
+            <p>まだ登録されている主がいません。</p>
         <?php endif; ?>
     </div>
 
     <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
 
-    <a href="Create_user.php" class="create-btn">➕ 新しい飼い主を作る</a>
+    <a href="Create_user.php" class="create-btn">➕ 新しい主を作る</a>
 </div>
 
 </body>
